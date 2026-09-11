@@ -21,32 +21,28 @@ jobs:
 
     - name: Download AIK
       run: |
-        wget -O AIK.tar.gz "https://github.com/Sigma-Solutions/Android-Image-Kitchen/archive/refs/heads/master.tar.gz"
+        wget -O AIK.tar.gz "https://github.com/osm0sis/Android-Image-Kitchen/archive/refs/heads/AIK-Linux.tar.gz"
         tar -xzf AIK.tar.gz
-        mv Android-Image-Kitchen-master AIK
-        cd AIK
-        chmod +x unpackimg.sh repackimg.sh
+        ls -la
 
     - name: Unpack Original Boot Image
       run: |
-        cd AIK
+        cd Android-Image-Kitchen-AIK-Linux
+        chmod +x unpackimg.sh repackimg.sh
         ./unpackimg.sh ../boot-original.img
-        echo "===== ISI boot-extracted ====="
+        echo "===== ISI split_img ====="
         ls -la split_img/
-        echo "=============================="
+        echo "========================"
 
     - name: Ganti Kernel
       run: |
-        cd AIK
-        # Lihat nama file kernel di split_img
-        ls -la split_img/
-        # Ganti kernel (biasanya boot.img-kernel)
+        cd Android-Image-Kitchen-AIK-Linux
         cp ../kernel-new.gz-dtb split_img/boot.img-kernel
         echo "===== Kernel sudah diganti ====="
 
     - name: Repack Boot Image
       run: |
-        cd AIK
+        cd Android-Image-Kitchen-AIK-Linux
         ./repackimg.sh
         mv image-new.img ../new-boot.img
         echo "===== Hasil Repack ====="
