@@ -1,0 +1,48 @@
+name: Build Kernel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential libssl-dev bc flex bison libncurses-dev libelf-dev git zip unzip curl wget gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi
+
+    - name: Build Kernel
+      run: |
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export CROSS_COMPILE=aarch64-linux-gnu-
+        export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+        make O=out lineage-msm8998-yoshino-poplar_defconfig
+        echo "===== CEK CONFIG ====="
+        grep -E "CONFIG_USB_NET|CONFIG_USB_USBNET" out/.config || echo "DRIVER TIDAK DITEMUKAN"
+        echo "======================"
+        make O=out -j$(nproc) 2>&1 | tee build.log
+        echo "===== CEK HASIL ====="
+        ls -la out/arch/arm64/boot/
+        echo "======================"
+
+    - name: Upload Kernel
+      uses: actions/upload-artifact@v4
+      with:
+        name: kernel-output
+        path: |
+          out/arch/arm64/boot/Image.gz-dtb
+          out/arch/arm64/boot/Image
+          out/arch/arm64/boot/dts/
+
+    - name: Upload Build Log
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log
+        path: build.log
