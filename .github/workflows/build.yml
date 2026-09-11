@@ -26,9 +26,10 @@ jobs:
         echo "===== CEK CONFIG ====="
         grep -E "CONFIG_USB_NET|CONFIG_USB_USBNET" out/.config || echo "DRIVER TIDAK DITEMUKAN"
         echo "======================"
-        make O=out -j$(nproc) 2>&1 | tee build.log
+        make O=out -j$(nproc)
         echo "===== CEK HASIL ====="
         ls -la out/arch/arm64/boot/
+        find out/arch/arm64/boot/ -name "Image*"
         echo "======================"
 
     - name: Upload Kernel
@@ -40,9 +41,8 @@ jobs:
           out/arch/arm64/boot/Image
           out/arch/arm64/boot/dts/
 
-    - name: Upload Build Log
-      if: always()
+    - name: Upload Config
       uses: actions/upload-artifact@v4
       with:
-        name: build-log
-        path: build.log
+        name: kernel-config
+        path: out/.config
