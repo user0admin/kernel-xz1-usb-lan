@@ -11,7 +11,7 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt update
-        sudo apt install -y git zip unzip curl wget python3
+        sudo apt install -y git zip unzip curl wget python3 cpio
 
     - name: Download Files
       run: |
@@ -19,29 +19,37 @@ jobs:
         wget -O kernel-new.gz-dtb "https://raw.githubusercontent.com/user0admin/kernel-xz1-usb-lan/main/Image.gz-dtb"
         ls -la
 
-    - name: Clone mkbootimg Tools
+    - name: Download AIK
       run: |
-        git clone --depth 1 https://github.com/osm0sis/mkbootimg.git
-        cd mkbootimg
-        make -j$(nproc)
-        sudo cp mkbootimg /usr/local/bin/
+        wget -O AIK.tar.gz "https://github.com/Sigma-Solutions/Android-Image-Kitchen/archive/refs/heads/master.tar.gz"
+        tar -xzf AIK.tar.gz
+        mv Android-Image-Kitchen-master AIK
+        cd AIK
+        chmod +x unpackimg.sh repackimg.sh
 
     - name: Unpack Original Boot Image
       run: |
-        cd mkbootimg
-        ./unpackbootimg -i ../boot-original.img -o ../boot-extracted
-        ls -la ../boot-extracted/
+        cd AIK
+        ./unpackimg.sh ../boot-original.img
+        echo "===== ISI boot-extracted ====="
+        ls -la split_img/
+        echo "=============================="
 
-    - name: Repack with New Kernel
+    - name: Ganti Kernel
       run: |
-        cd mkbootimg
-        cp ../kernel-new.gz-dtb ../boot-extracted/boot.img-kernel
-        ./mkbootimg \
-          --kernel ../boot-extracted/boot.img-kernel \
-          --ramdisk ../boot-extracted/boot.img-ramdisk.gz \
-          --cmdline "$(cat ../boot-extracted/boot.img-cmdline)" \
-          --base 0x20000000 --pagesize 2048 \
-          --output ../new-boot.img
+        cd AIK
+        # Lihat nama file kernel di split_img
+        ls -la split_img/
+        # Ganti kernel (biasanya boot.img-kernel)
+        cp ../kernel-new.gz-dtb split_img/boot.img-kernel
+        echo "===== Kernel sudah diganti ====="
+
+    - name: Repack Boot Image
+      run: |
+        cd AIK
+        ./repackimg.sh
+        mv image-new.img ../new-boot.img
+        echo "===== Hasil Repack ====="
         ls -la ../new-boot.img
 
     - name: Upload New Boot Image
