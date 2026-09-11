@@ -19,31 +19,31 @@ jobs:
         wget -O kernel-new.gz-dtb "https://raw.githubusercontent.com/user0admin/kernel-xz1-usb-lan/main/Image.gz-dtb"
         ls -la
 
-    - name: Download AIK
+    - name: Download AIK (versi lengkap)
       run: |
-        wget -O AIK.tar.gz "https://github.com/osm0sis/Android-Image-Kitchen/archive/refs/heads/AIK-Linux.tar.gz"
+        wget -O AIK.tar.gz "https://github.com/ndrancs/AIK-Linux-x32-x64/archive/refs/heads/master.tar.gz"
         tar -xzf AIK.tar.gz
         ls -la
 
     - name: Unpack Original Boot Image
       run: |
-        cd Android-Image-Kitchen-AIK-Linux
-        chmod +x unpackimg.sh repackimg.sh
-        ./unpackimg.sh ../boot-original.img
+        cd AIK-Linux-x32-x64-master
+        chmod +x unpackimg_x64.sh repackimg_x64.sh
+        ./unpackimg_x64.sh ../boot-original.img
         echo "===== ISI split_img ====="
         ls -la split_img/
         echo "========================"
 
     - name: Ganti Kernel
       run: |
-        cd Android-Image-Kitchen-AIK-Linux
+        cd AIK-Linux-x32-x64-master
         cp ../kernel-new.gz-dtb split_img/boot.img-kernel
         echo "===== Kernel sudah diganti ====="
 
     - name: Repack Boot Image
       run: |
-        cd Android-Image-Kitchen-AIK-Linux
-        ./repackimg.sh
+        cd AIK-Linux-x32-x64-master
+        ./repackimg_x64.sh
         mv image-new.img ../new-boot.img
         echo "===== Hasil Repack ====="
         ls -la ../new-boot.img
