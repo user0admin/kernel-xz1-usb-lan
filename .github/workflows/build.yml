@@ -1,42 +1,51 @@
-name: Build Kernel
+name: Repack Boot Image
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
+  repack:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout Source
-      uses: actions/checkout@v4
-
     - name: Install Dependencies
       run: |
         sudo apt update
-        sudo apt install -y build-essential libssl-dev bc flex bison libncurses-dev libelf-dev git zip unzip curl wget gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi
+        sudo apt install -y git zip unzip curl wget python3
 
-    - name: Build Kernel
+    - name: Download Files
       run: |
-        export ARCH=arm64
-        export SUBARCH=arm64
-        export CROSS_COMPILE=aarch64-linux-gnu-
-        export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
-        make O=out lineage-msm8998-yoshino-poplar_defconfig
-        scripts/config --file out/.config -d CONFIG_WERROR
-        scripts/config --file out/.config -e CONFIG_WLAN_VENDOR_QCACLD 2>/dev/null || true
-        make O=out -j$(nproc) KCFLAGS="-Wno-error" 2>&1 | tail -100
+        wget -O boot-original.img "https://raw.githubusercontent.com/user0admin/kernel-xz1-usb-lan/main/boot.img"
+        wget -O kernel-new.gz-dtb "https://raw.githubusercontent.com/user0admin/kernel-xz1-usb-lan/main/Image.gz-dtb"
+        ls -la
 
-    - name: Upload Kernel
+    - name: Clone mkbootimg Tools
+      run: |
+        git clone --depth 1 https://github.com/osm0sis/mkbootimg.git
+        cd mkbootimg
+        make -j$(nproc)
+        sudo cp mkbootimg /usr/local/bin/
+
+    - name: Unpack Original Boot Image
+      run: |
+        cd mkbootimg
+        ./unpackbootimg -i ../boot-original.img -o ../boot-extracted
+        ls -la ../boot-extracted/
+
+    - name: Repack with New Kernel
+      run: |
+        cd mkbootimg
+        cp ../kernel-new.gz-dtb ../boot-extracted/boot.img-kernel
+        ./mkbootimg \
+          --kernel ../boot-extracted/boot.img-kernel \
+          --ramdisk ../boot-extracted/boot.img-ramdisk.gz \
+          --cmdline "$(cat ../boot-extracted/boot.img-cmdline)" \
+          --base 0x20000000 --pagesize 2048 \
+          --output ../new-boot.img
+        ls -la ../new-boot.img
+
+    - name: Upload New Boot Image
       uses: actions/upload-artifact@v4
       with:
-        name: kernel-output
-        path: |
-          out/arch/arm64/boot/Image.gz-dtb
-          out/arch/arm64/boot/Image
-
-    - name: Upload Config
-      uses: actions/upload-artifact@v4
-      with:
-        name: kernel-config
-        path: out/.config
+        name: new-boot
+        path: new-boot.img
